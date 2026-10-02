@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Garasjeporten</title>
+  <meta name="description" content="Status for garasjeporten – og hvor mange ganger den har blitt påkjørt.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
+  <style>
+    :root {
+      --bg: #12141a;
+      --card: #1c1f28;
+      --text: #f2f2f2;
+      --muted: #9aa0ad;
+      --ok: #3ddc84;
+      --dead: #e5383b;
+      --face: #ffd23f;
+      --face-dead: #c9c9b8;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; }
+
+    body {
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+    }
+
+    main {
+      width: 100%;
+      max-width: 28rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: clamp(1.4rem, 6vw, 2rem);
+      margin: .5rem 0 0;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 1.25rem;
+      padding: 1.25rem;
+    }
+
+    /* Ansiktet */
+    .face {
+      width: min(70vw, 16rem);
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    .face--dead { display: none; }
+    body.dead .face--ok { display: none; }
+    body.dead .face--dead { display: block; }
+
+    .status {
+      font-size: clamp(1.2rem, 5vw, 1.6rem);
+      font-weight: 800;
+      margin: .75rem 0 0;
+      color: var(--ok);
+    }
+    body.dead .status { color: var(--dead); }
+
+    /* Blodet drypper */
+    .drip { animation: drip 2.4s ease-in infinite; }
+    .drip:nth-of-type(2) { animation-delay: .8s; }
+    .drip:nth-of-type(3) { animation-delay: 1.6s; }
+    @keyframes drip {
+      0%   { transform: translateY(0) scaleY(1); opacity: 1; }
+      80%  { transform: translateY(18px) scaleY(1.3); opacity: 1; }
+      100% { transform: translateY(24px) scaleY(1.3); opacity: 0; }
+    }
+    /* Utstyr som låses opp */
+    .acc { display: none; }
+    .acc.on { display: inline; }
+
+    .fall { animation: fall 3s linear infinite; }
+    .fall:nth-of-type(2) { animation-delay: .6s; }
+    .fall:nth-of-type(3) { animation-delay: 1.2s; }
+    .fall:nth-of-type(4) { animation-delay: 1.8s; }
+    .fall:nth-of-type(5) { animation-delay: 2.4s; }
+    @keyframes fall {
+      from { transform: translateY(-20px); opacity: 0; }
+      15%  { opacity: 1; }
+      to   { transform: translateY(80px); opacity: 0; }
+    }
+
+    .smoke { animation: smoke 2s ease-out infinite; }
+    @keyframes smoke {
+      from { transform: translateY(0); opacity: .8; }
+      to   { transform: translateY(-14px); opacity: 0; }
+    }
+
+    .level {
+      font-weight: 700;
+      margin: .5rem 0 0;
+    }
+    .next {
+      color: var(--muted);
+      font-size: .9rem;
+      margin: .25rem 0 0;
+    }
+    body.dead .level, body.dead .next { display: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .drip, .fall, .smoke { animation: none; }
+    }
+
+    /* "Liv"-telleren */
+    .label {
+      color: var(--muted);
+      font-size: .85rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin: 0;
+    }
+    .count {
+      font-size: clamp(3.5rem, 20vw, 5.5rem);
+      font-weight: 900;
+      line-height: 1;
+      margin: .25rem 0;
+      color: var(--dead);
+      font-variant-numeric: tabular-nums;
+    }
+    .hearts {
+      font-size: 1.5rem;
+      line-height: 1.6;
+      word-break: break-all;
+      margin: .5rem 0 0;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .stats .value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin: .25rem 0 0;
+    }
+
+    .stats .wide { grid-column: 1 / -1; }
+
+    footer {
+      color: var(--muted);
+      font-size: .8rem;
+      padding-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Status: garasjeporten</h1>
+
+    <section class="card" aria-live="polite">
+      <!-- Smilefjes: porten virker (med skader og rikdom) -->
+      <svg class="face face--ok" viewBox="-50 -70 300 310" role="img" aria-label="Glad smilefjes">
+        <!-- Pengeregn (bak fjeset) -->
+        <g class="acc" id="penger" font-size="26">
+          <text class="fall" x="-40" y="-40">💸</text>
+          <text class="fall" x="200" y="-20">💵</text>
+          <text class="fall" x="-45" y="200">💰</text>
+          <text class="fall" x="210" y="160">💸</text>
+          <text class="fall" x="170" y="-55">💎</text>
+        </g>
+
+        <!-- Arm med gullklokke (bak fjeset) -->
+        <g class="acc" id="klokke">
+          <path d="M30 150 L-22 95" stroke="var(--face)" stroke-width="18" stroke-linecap="round" />
+          <circle cx="-28" cy="84" r="15" fill="var(--face)" />
+          <rect x="-18" y="104" width="22" height="12" rx="3" fill="#b8860b" transform="rotate(47 -7 110)" />
+          <circle cx="-7" cy="110" r="11" fill="#ffcc33" stroke="#b8860b" stroke-width="3" />
+          <circle cx="-7" cy="110" r="6.5" fill="#fff" />
+          <path d="M-7 110 V106 M-7 110 H-4" stroke="#222" stroke-width="1.5" stroke-linecap="round" />
+        </g>
+
+        <circle cx="100" cy="100" r="90" fill="var(--face)" />
+
+        <!-- Skader: 1 plaster, 2 blått øye, 3 sprekk, 4 tenner, 5+ bandasje -->
+        <g class="acc" id="skade-2">
+          <ellipse cx="130" cy="80" rx="21" ry="18" fill="#7b5ea7" opacity=".75" />
+        </g>
+        <g class="acc" id="skade-3">
+          <path d="M160 34 L146 50 L156 56 L138 72" stroke="#5a4a00" stroke-width="4" fill="none" stroke-linejoin="round" stroke-linecap="round" />
+        </g>
+
+        <circle cx="70" cy="80" r="11" fill="#222" />
+        <circle cx="130" cy="80" r="11" fill="#222" />
+        <path d="M55 120 Q100 170 145 120" stroke="#222" stroke-width="10" fill="none" stroke-linecap="round" />
+
+        <g class="acc" id="skade-4">
+          <rect x="80" y="146" width="13" height="12" rx="2" fill="#fff" stroke="#222" stroke-width="2.5" />
+          <rect x="108" y="146" width="13" height="12" rx="2" fill="#fff" stroke="#222" stroke-width="2.5" />
+        </g>
+        <g class="acc" id="skade-1">
+          <g transform="rotate(-35 52 42)">
+            <rect x="30" y="34" width="44" height="16" rx="7" fill="#e8b98a" />
+            <rect x="45" y="34" width="14" height="16" fill="#d9a06b" />
+          </g>
+        </g>
+        <g class="acc" id="skade-5">
+          <path d="M14 58 Q100 0 186 58" stroke="#f4f4f4" stroke-width="18" fill="none" />
+          <circle cx="150" cy="30" r="6" fill="var(--dead)" opacity=".85" />
+        </g>
+
+        <!-- Røde kinn -->
+        <g class="acc" id="kinn" fill="#ff7a8a" opacity=".55">
+          <ellipse cx="45" cy="112" rx="13" ry="8" />
+          <ellipse cx="155" cy="112" rx="13" ry="8" />
+        </g>
+
+        <!-- Solbriller -->
+        <g class="acc" id="solbriller">
+          <path d="M14 70 H186" stroke="#111" stroke-width="5" />
+          <rect x="44" y="62" width="50" height="32" rx="10" fill="#111" />
+          <rect x="106" y="62" width="50" height="32" rx="10" fill="#111" />
+          <path d="M52 70 l12 0 M114 70 l12 0" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7" />
+        </g>
+
+        <!-- Gullkjede -->
+        <g class="acc" id="kjede">
+          <path d="M38 160 Q100 222 162 160" stroke="#b8860b" stroke-width="6" fill="none" stroke-dasharray="1 7" stroke-linecap="round" />
+          <circle cx="100" cy="202" r="17" fill="#ffcc33" stroke="#b8860b" stroke-width="3" />
+          <text x="100" y="210" text-anchor="middle" font-size="22" font-weight="900" fill="#8a6100">$</text>
+        </g>
+
+        <!-- Sigar -->
+        <g class="acc" id="sigar">
+          <g transform="rotate(-18 140 128)">
+            <rect x="138" y="122" width="52" height="11" rx="4" fill="#6b3e1f" />
+            <rect x="152" y="122" width="7" height="11" fill="#c0392b" />
+            <rect x="186" y="122" width="6" height="11" rx="2" fill="#ff7b00" />
+          </g>
+          <path class="smoke" d="M196 104 q-8 -10 0 -20 q8 -10 0 -20" stroke="#bbb" stroke-width="4" fill="none" stroke-linecap="round" />
+        </g>
+
+        <!-- Flosshatt -->
+        <g class="acc" id="hatt">
+          <rect x="62" y="-50" width="76" height="58" rx="4" fill="#111" />
+          <rect x="62" y="-8" width="76" height="11" fill="#c0392b" />
+          <rect x="34" y="4" width="132" height="12" rx="6" fill="#111" />
+        </g>
+
+        <!-- Krone -->
+        <g class="acc" id="krone">
+          <path d="M42 18 V-28 L71 -2 L100 -48 L129 -2 L158 -28 V18 Z" fill="#ffcc33" stroke="#b8860b" stroke-width="3" stroke-linejoin="round" />
+          <circle cx="100" cy="0" r="7" fill="#e5383b" />
+          <circle cx="66" cy="8" r="5" fill="#3a86ff" />
+          <circle cx="134" cy="8" r="5" fill="#3ddc84" />
+        </g>
+      </svg>
+
+      <!-- Dødfjes med blod: porten er ute av drift -->
+      <svg class="face face--dead" viewBox="0 0 200 230" role="img" aria-label="Dødt fjes med blod">
+        <circle cx="100" cy="100" r="90" fill="var(--face-dead)" />
+        <!-- X-øyne -->
+        <g stroke="#222" stroke-width="9" stroke-linecap="round">
+          <line x1="55" y1="65" x2="85" y2="95" /><line x1="85" y1="65" x2="55" y2="95" />
+          <line x1="115" y1="65" x2="145" y2="95" /><line x1="145" y1="65" x2="115" y2="95" />
+        </g>
+        <!-- Munn med tunge -->
+        <path d="M60 140 L140 140" stroke="#222" stroke-width="9" stroke-linecap="round" />
+        <path d="M110 140 q0 22 14 22 q14 0 14 -22 z" fill="#e87a90" />
+        <!-- Blod -->
+        <g fill="var(--dead)">
+          <path d="M40 30 q20 -18 45 -12 q-4 14 -18 18 q-4 22 -10 22 q-6 0 -6 -16 q-10 0 -11 -12 z" />
+          <path d="M150 120 q20 0 30 -10 q2 20 -10 34 q-4 30 -10 30 q-6 0 -6 -26 q-8 -10 -4 -28 z" />
+          <path d="M78 150 q4 30 2 50 a6 6 0 0 1 -12 0 q-2 -24 2 -50 z" />
+          <circle class="drip" cx="74" cy="208" r="5" />
+          <circle class="drip" cx="164" cy="180" r="4" />
+          <circle class="drip" cx="59" cy="62" r="3.5" />
+        </g>
+      </svg>
+
+      <p class="status" id="status">Porten virker 🎉</p>
+      <p class="level" id="level"></p>
+      <p class="next" id="next"></p>
+    </section>
+
+    <section class="card">
+      <p class="label">Påkjørsler</p>
+      <p class="count" id="count">0</p>
+      <p class="hearts" id="hearts" aria-hidden="true"></p>
+    </section>
+
+    <section class="stats">
+      <div class="card">
+        <p class="label">Dager siden sist</p>
+        <p class="value" id="days">–</p>
+      </div>
+      <div class="card">
+        <p class="label">Sist påkjørt</p>
+        <p class="value" id="last">–</p>
+      </div>
+      <div class="card wide">
+        <p class="label">Dager ute av drift totalt</p>
+        <p class="value" id="downtime">0</p>
+      </div>
+    </section>
+
+    <footer>Kjør forsiktig. Porten har ikke uendelig med liv.</footer>
+  </main>
+
+  <script>
+    // ============================================================
+    //  REDIGER HER – én linje per påkjørsel (datoer: ÅÅÅÅ-MM-DD)
+    //    { dato: "..." }                          skadet, men virker
+    //    { dato: "...", nede: true }              ute av drift nå
+    //    { dato: "...", nede: true, fikset: "..." } var ute av drift, nå fikset
+    // ============================================================
+    const pakjorsler = [
+      { dato: "2026-03-14", nede: true, fikset: "2026-03-20" },
+      { dato: "2026-06-02" },
+      { dato: "2026-09-28" },
+    ];
+    // ============================================================
+
+    // Jo lenger uten påkjørsel, jo rikere blir porten.
+    const nivaer = [
+      { dager: 0,   id: null,         tittel: "Nyreparert og nervøs" },
+      { dager: 1,   id: "kinn",       tittel: "Glad port" },
+      { dager: 3,   id: "solbriller", tittel: "Kul port" },
+      { dager: 7,   id: "kjede",      tittel: "Bling-port" },
+      { dager: 14,  id: "klokke",     tittel: "Rolex-port" },
+      { dager: 30,  id: "hatt",       tittel: "Gentleman-port" },
+      { dager: 60,  id: "sigar",      tittel: "Finans-port" },
+      { dager: 100, id: "krone",      tittel: "Kongeporten" },
+      { dager: 365, id: "penger",     tittel: "Milliardærporten" },
+    ];
+
+    const DAG = 86400000;
+    const tilDato = (d) => new Date(d + "T00:00:00");
+    const idag = new Date();
+    idag.setHours(0, 0, 0, 0);
+    const dagerMellom = (fra, til) => Math.round((til - fra) / DAG);
+    const visDato = (d) => d.toLocaleDateString("no-NO", { day: "numeric", month: "short", year: "numeric" });
+    const $ = (id) => document.getElementById(id);
+
+    const sortert = pakjorsler.slice().sort((a, b) => a.dato.localeCompare(b.dato));
+    const count = sortert.length;
+    const params = new URLSearchParams(location.search);
+
+    $("count").textContent = count;
+    $("hearts").textContent = sortert.map((p) => (p.nede ? "☠️" : "💔")).join("");
+
+    const nedetid = sortert.reduce(
+      (sum, p) => (p.nede ? sum + dagerMellom(tilDato(p.dato), p.fikset ? tilDato(p.fikset) : idag) : sum),
+      0
+    );
+    $("downtime").textContent = nedetid;
+
+    if (count > 0) {
+      const sist = tilDato(sortert.at(-1).dato);
+      $("days").textContent = dagerMellom(sist, idag);
+      $("last").textContent = visDato(sist);
+    }
+
+    // Forhåndsvisning: ?nede=5  ?dager=120  ?skader=3
+    const nede = params.has("nede")
+      ? { dagerNede: Number(params.get("nede")) }
+      : sortert.filter((p) => p.nede && !p.fikset).map((p) => ({ dagerNede: dagerMellom(tilDato(p.dato), idag) })).at(-1);
+
+    // Rikdom teller fra siste påkjørsel eller siste reparasjon, det som kom sist.
+    const hendelser = sortert.flatMap((p) => [p.dato, p.fikset].filter(Boolean)).sort();
+    let dager = hendelser.length ? dagerMellom(tilDato(hendelser.at(-1)), idag) : null;
+    if (params.has("dager")) dager = Number(params.get("dager"));
+
+    const skader = params.has("skader") ? Number(params.get("skader")) : count;
+    for (let i = 1; i <= Math.min(skader, 5); i++) $("skade-" + i).classList.add("on");
+
+    const portenErOk = !nede;
+    if (!portenErOk) {
+      document.body.classList.add("dead");
+      const n = nede.dagerNede;
+      $("status").textContent = `Ute av drift i ${n} ${n === 1 ? "dag" : "dager"} 💀`;
+    } else if (count > 0) {
+      $("status").textContent = "Porten virker – foreløpig 🩹";
+    }
+
+    if (portenErOk && dager !== null) {
+      const oppnadd = nivaer.filter((n) => dager >= n.dager);
+      oppnadd.forEach((n) => n.id && $(n.id).classList.add("on"));
+      // Kronen erstatter flosshatten
+      if (dager >= 100) $("hatt").classList.remove("on");
+
+      $("level").textContent = "Nivå: " + oppnadd.at(-1).tittel;
+      const neste = nivaer.find((n) => n.dager > dager);
+      const igjen = neste && neste.dager - dager;
+      $("next").textContent = neste
+        ? `Neste oppgradering om ${igjen} ${igjen === 1 ? "dag" : "dager"} – hvis ingen kjører på den.`
+        : "Maks rikdom oppnådd. Ikke ødelegg det nå.";
+    }
+  </script>
+</body>
+</html>
